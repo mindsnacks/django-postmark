@@ -7,6 +7,7 @@ from datetime import datetime
 from pytz import timezone
 import pytz
 import base64
+import re
 
 from postmark.models import EmailMessage, EmailBounce
 
@@ -71,9 +72,9 @@ def bounce(request):
         
         bounce_dict = json.loads(request.read())
             
-        timestamp, tz = bounce_dict["BouncedAt"].rsplit("+", 1)
+        timestamp, tz = re.match("(.*)([-+].*)", bounce_dict["BouncedAt"]).groups()
         tz_offset = int(tz.split(":", 1)[0])
-        tz = timezone("Etc/GMT%s%d" % ("+" if tz_offset >= 0 else "-", tz_offset))
+        tz = timezone("Etc/GMT%s%d" % ("+" if tz_offset >= 0 else "", tz_offset))
         bounced_at = tz.localize(datetime.strptime(timestamp[:26], POSTMARK_DATETIME_STRING)).astimezone(pytz.utc)
             
         em = get_object_or_404(EmailMessage, message_id=bounce_dict["MessageID"], to=bounce_dict["Email"])
